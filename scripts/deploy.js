@@ -6,6 +6,7 @@ const { BridgedMilestone, LPMilestone, MilestoneFactory } = require('lpp-milesto
 const { MiniMeTokenFactory, MiniMeToken, MiniMeTokenState } = require('minimetoken');
 const { GivethBridge, ForeignGivethBridge } = require('giveth-bridge');
 const startNetworks = require('./startNetworks');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 
 const { RecoveryVault } = test;
 
@@ -14,13 +15,32 @@ const { RecoveryVault } = test;
 
 async function deploy() {
   try {
-    const { homeNetwork, foreignNetwork } = await startNetworks();
+    // const { homeNetwork, foreignNetwork } = await startNetworks();
+    //
+    // await homeNetwork.waitForStart();
+    // await foreignNetwork.waitForStart();
+    //
+    // const homeWeb3 = new Web3('http://localhost:8545');
+    // const foreignWeb3 = new Web3('http://localhost:8546');
 
-    await homeNetwork.waitForStart();
-    await foreignNetwork.waitForStart();
+    const mnemonic = 'myth like bonus scare over problem client lizard pioneer submit female collect';
+    const provider = new HDWalletProvider(mnemonic, 'http://localhost:8545', 0, 11, false);
+    const homeWeb3 = new Web3(provider);
+    const foreignProvider = new HDWalletProvider(mnemonic, 'http://localhost:8546', 0, 11, false);
+    const foreignWeb3 = new Web3(foreignProvider);
 
-    const homeWeb3 = new Web3('http://localhost:8545');
-    const foreignWeb3 = new Web3('http://localhost:8546');
+    // const accounts = ['0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
+    //   '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
+    //   '0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b',
+    //   '0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d',
+    //   '0xd03ea8624C8C5987235048901fB614fDcA89b117',
+    //   '0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC',
+    //   '0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9',
+    //   '0x28a8746e75304c0780E011BEd21C72cD78cd535E',
+    //   '0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E',
+    //   '0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e',
+    //   '0x610Bb1573d1046FCb8A70Bbbd395754cD57C2b60'];
+    // const homeAccounts = accounts;
 
     const accounts = await foreignWeb3.eth.getAccounts();
     const homeAccounts = await homeWeb3.eth.getAccounts();
@@ -201,13 +221,13 @@ async function deploy() {
 
     // generate tokens for all home accounts
     // we first generate all tokens, then transfer, otherwise MetaMask will not show token balances
-    await miniMeToken.generateTokens(homeAccounts[10], Web3.utils.toWei('100000'));
+    await miniMeToken.generateTokens(homeAccounts[10], Web3.utils.toWei('100000'), { from: homeAccounts[0] });
 
     // transfer tokens to all other home accounts, so that Meta mask will detect these tokens
     await Promise.all(
       homeAccounts.map(
         async a =>
-          await miniMeToken.transfer(a, Web3.utils.toWei('10000'), { from: homeAccounts[10] }),
+          await miniMeToken.transfer(a, Web3.utils.toWei('10000'), { from: homeAccounts[10], gas: 1000000 }),
       ),
     );
 
@@ -242,6 +262,33 @@ async function deploy() {
         decimals: 18,
       },
     });
+
+    if (vault.$address !== '0x6098441760E4614AAc6e6bb3Ec7A254C2a600b5d' ||
+      liquidPledging.$address !== '0xBeFdf675cb73813952C5A9E4B84ea8B866DBA592' ||
+      lppCampaignFactory.$address !== '0x9b1f7F645351AF3631a656421eD2e40f2802E6c0' ||
+      milestoneFactory.$address !== '0x630589690929E9cdEFDeF0734717a9eF3Ec7Fcfe' ||
+      homeBridge.$address !== '0x8fed3F9126e7051DeA6c530920cb0BAE5ffa17a8' ||
+      foreignBridge.$address !== '0x8fed3F9126e7051DeA6c530920cb0BAE5ffa17a8' ||
+      foreignEthAddress !== '0x5a42ca500aB159c51312B764bb25C135026e7a31' ||
+      miniMeToken.$address !== '0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab' ||
+      foreigTokenAddress !== '0x8F086f895deBc23473dfe507dd4BF35D6184552c') {
+      console.error('Contract address not compatible');
+    }
+    /*
+     { vault: '0x6098441760E4614AAc6e6bb3Ec7A254C2a600b5d',
+  liquidPledging: '0xBeFdf675cb73813952C5A9E4B84ea8B866DBA592',
+  lppCampaignFactory: '0x9b1f7F645351AF3631a656421eD2e40f2802E6c0',
+  milestoneFactory: '0x630589690929E9cdEFDeF0734717a9eF3Ec7Fcfe',
+  givethBridge: '0x8fed3F9126e7051DeA6c530920cb0BAE5ffa17a8',
+  foreignGivethBridge: '0x8fed3F9126e7051DeA6c530920cb0BAE5ffa17a8',
+  homeEthToken: '0x5a42ca500aB159c51312B764bb25C135026e7a31',
+  miniMeToken:
+   { name: 'MiniMe Token',
+     address: '0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab',
+     foreignAddress: '0x8F086f895deBc23473dfe507dd4BF35D6184552c',
+     symbol: 'MMT',
+     decimals: 18 } }
+     */
     process.exit(); // some reason, this script won't exit. I think it has to do with web3 subscribing to tx confirmations?
   } catch (e) {
     console.log(e);

@@ -25,12 +25,12 @@ let homeNetwork;
 let foreignNetwork;
 
 const start = async () => {
-  const networks = await startNetworks(BLOCK_TIME);
-  homeNetwork = networks.homeNetwork;
-  foreignNetwork = networks.foreignNetwork;
-
-  await homeNetwork.waitForStart();
-  await foreignNetwork.waitForStart();
+  // const networks = await startNetworks(BLOCK_TIME);
+  // homeNetwork = networks.homeNetwork;
+  // foreignNetwork = networks.foreignNetwork;
+  //
+  // await homeNetwork.waitForStart();
+  // await foreignNetwork.waitForStart();
 
   bridge(bridgeConfig);
   logger.level = 'debug';
